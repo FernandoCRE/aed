@@ -33,19 +33,19 @@ void cola<T, N>::print() {
         return;
     }
 
-    // Usamos un puntero temporal para no mover el 'head' original
+    // puntero temporal
     T* t = head;
 
     while (true) {
-        cout << *t << " "; // Imprimimos el valor donde apunta t
+        cout << *t << " "; 
 
-        // Lógica para que el puntero 't' se mueva circularmente
+        // t se movera circularmente
         if (t == arr + nro_elementos - 1) 
-            t = arr; // Si llega al final del arreglo, salta al inicio
+            t = arr; // fin=inicio
         else 
-            t++;     // Si no, avanza a la siguiente posición
+            t++;     
 
-        // Si después de avanzar, t alcanzó al tail, ya terminamos
+        // t=tail=fin
         if (t == tail) break;
     }
     cout << "\n";
@@ -105,14 +105,14 @@ bool cola<T, N>::pop(T& valor) {
 
     valor = *head;
 
-    // 1. Calculamos cuál sería la posición SIGUIENTE del head
+    // next posicion de head
     T* proximo_head;
     if (head == arr + nro_elementos - 1) 
         proximo_head = arr;
     else 
         proximo_head = head + 1;
 
-    // 2. Si el siguiente lugar del head es donde está el tail, 
+    // 2. head=tail=sacamos el ultimo elemento
     // significa que acabamos de sacar el último elemento.
     if (proximo_head == tail) {
         head = nullptr;
