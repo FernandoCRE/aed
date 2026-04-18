@@ -1,0 +1,261 @@
+#include <iostream>
+using namespace std;
+
+/*
+------------------------------------------------------------
+                        DEQUE
+------------------------------------------------------------
+*/
+
+template <typename T>
+struct cDeque {
+    T arr[100];
+    int ini;
+    int fin;
+
+    cDeque() {
+        ini = -1;
+        fin = -1;
+    }
+
+    bool Vacio() {
+        return ini == -1;
+    }
+
+    void push_back(T n) {
+        if (fin == 99) {
+            cout << "Deque lleno..." << endl;
+            return;
+        }
+
+        if (Vacio()) {
+            ini = 0;
+            fin = 0;
+        }
+        else {
+            fin++;
+        }
+
+        arr[fin] = n;
+    }
+
+    T pop_front() {
+        if (Vacio()) {
+            cout << "Deque vacio..." << endl;
+            return T();
+        }
+
+        T valor = arr[ini];
+
+        if (ini == fin) {
+            ini = -1;
+            fin = -1;
+        }
+        else {
+            ini++;
+        }
+
+        return valor;
+    }
+
+    void print() {
+        if (Vacio()) {
+            cout << "no hay nada";
+            return;
+        }
+
+        for (int i = ini; i <= fin; i++) {
+            cout << arr[i] << " ";
+        }
+    }
+};
+
+
+/*
+------------------------------------------------------------
+                        PILA
+------------------------------------------------------------
+*/
+
+template <class T>
+struct PilaOperadores {
+    T arr[100];
+    int top;
+
+    PilaOperadores() {
+        top = -1;
+    }
+
+    bool Vacia() {
+        return top == -1;
+    }
+
+    void PushPila(T n) {
+        if (top == 99) {
+            cout << "pila llena" << endl;
+            return;
+        }
+
+        top++;
+        arr[top] = n;
+    }
+
+    T PopPila() {
+        if (Vacia()) {
+            cout << "Pila vacia..." << endl;
+            return T();
+        }
+
+        T valor = arr[top];
+        top--;
+        return valor;
+    }
+
+    T VerTop() {
+        if (Vacia()) {
+            return T();
+        }
+
+        return arr[top];
+    }
+};
+
+
+/*
+------------------------------------------------------------
+                        LOGICA
+------------------------------------------------------------
+*/
+
+struct Logica {
+    cDeque<char> resultado;
+    PilaOperadores<char> pila;
+
+    void RecibirNotacion(string notacion);
+
+    bool EsNumero(char n);
+    bool EsOperador(char a);
+    int Jerarquia(char operador);
+
+    int Evaluar();
+};
+
+bool Logica::EsNumero(char n) {
+    return (n >= '0' && n <= '9');
+}
+
+bool Logica::EsOperador(char n) {
+    switch (n) {
+    case '+': return true;
+    case '-': return true;
+    case '*': return true;
+    case '/': return true;
+    default: return false;
+    }
+}
+
+int Logica::Jerarquia(char operador) {
+    switch (operador) {
+    case '+': return 1;
+    case '-': return 1;
+    case '*': return 2;
+    case '/': return 2;
+    default: return 0;
+    }
+}
+
+void Logica::RecibirNotacion(string notacion) {
+    for (int i = 0; i < notacion.size(); i++) {
+
+        if (notacion[i] == ' ') {
+            continue;
+        }
+
+        if (EsNumero(notacion[i])) {
+            resultado.push_back(notacion[i]);
+        }
+        else if (notacion[i] == '(') {
+            pila.PushPila(notacion[i]);
+        }
+        else if (notacion[i] == ')') {
+            while (!pila.Vacia() && pila.VerTop() != '(') {
+                resultado.push_back(pila.PopPila());
+            }
+
+            if (!pila.Vacia()) {
+                pila.PopPila(); // sacar '('
+            }
+        }
+        else if (EsOperador(notacion[i])) {
+            while (!pila.Vacia() && Jerarquia(pila.VerTop()) >= Jerarquia(notacion[i])) {
+                if (pila.VerTop() == '(') {
+                    break;
+                }
+
+                resultado.push_back(pila.PopPila());
+            }
+
+            pila.PushPila(notacion[i]);
+        }
+    }
+
+    while (!pila.Vacia()) {
+        resultado.push_back(pila.PopPila());
+    }
+}
+
+int Logica::Evaluar() {
+    PilaOperadores<int> numeros;
+
+    while (!resultado.Vacio()) {
+        char c = resultado.pop_front();
+
+        if (EsNumero(c)) {
+            numeros.PushPila(c - '0');
+        }
+        else if (EsOperador(c)) {
+            int b = numeros.PopPila();
+            int a = numeros.PopPila();
+
+            if (c == '+') {
+                numeros.PushPila(a + b);
+            }
+            else if (c == '-') {
+                numeros.PushPila(a - b);
+            }
+            else if (c == '*') {
+                numeros.PushPila(a * b);
+            }
+            else if (c == '/') {
+                numeros.PushPila(a / b);
+            }
+        }
+    }
+
+    return numeros.PopPila();
+}
+
+
+/*
+------------------------------------------------------------
+                        MAIN
+------------------------------------------------------------
+*/
+
+int main() {
+    Logica infija;
+
+    string exp_matematica = "( 5 + 3 ) * 2";
+
+    cout << "Exp. Matematica: [ " << exp_matematica << " ]" << endl;
+
+    infija.RecibirNotacion(exp_matematica);
+
+    cout << "Exp. Postfija: [ ";
+    infija.resultado.print();
+    cout << "]" << endl;
+
+    cout << "resultado: " << infija.Evaluar() << endl;
+
+    return 0;
+}
