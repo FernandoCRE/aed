@@ -1,106 +1,220 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include <ctime>
+#include <cctype>
 
 using namespace std;
 
-// PILA
 struct EstadoJuego {
     string palabraProgreso;
     int vidas;
     char letraIngresada;
 };
 
-// PILA
 template <class T>
 struct Pila {
     T* arr;
     int top;
     int capacidad;
 
-    Pila(int n) : capacidad(n), top(-1) { arr = new T[n]; }
-    ~Pila() { delete[] arr; }
+    Pila(int n) {
+        capacidad = n;
+        top = -1;
+        arr = new T[n];
+    }
+
+    ~Pila() {
+        delete[] arr;
+    }
 
     bool push(T v) {
         if (top == capacidad - 1) {
-            // Si esta llena, desplazamos para mantener solo los ultimos 10
-            for (int i = 0; i < capacidad - 1; i++) arr[i] = arr[i + 1];
+            for (int i = 0; i < capacidad - 1; i++) {
+                arr[i] = arr[i + 1];
+            }
+
             arr[top] = v;
             return true;
         }
-        arr[++top] = v;
+
+        top++;
+        arr[top] = v;
         return true;
     }
 
     bool pop(T& v) {
-        if (top < 0) return false;
-        v = arr[top--];
+        if (top < 0) {
+            return false;
+        }
+
+        v = arr[top];
+        top--;
         return true;
     }
-    bool vacia() { return top < 0; }
+
+    bool vacia() {
+        return top < 0;
+    }
 };
 
-// JUEGO
+struct Ahorcado {
+    int vidas;
+    int memoriaEstados;
+    int limiteRetrocesos;
+    int retrocesosUsados;
+
+    string* diccionario;
+    string palabraReal;
+    string progreso;
+
+    Pila<EstadoJuego>* memoria;
+
+    Ahorcado(int memoriaCantidad);
+    ~Ahorcado();
+
+    void MostrarEstado();
+    bool VerificarVictoria();
+    bool VerificarDerrota();
+    bool VerificarFinJuego();
+    void RecibirLetra(char input);
+    void CtrlZ();
+};
+
+Ahorcado::Ahorcado(int memoriaCantidad) {
+    vidas = 15;
+
+    memoriaEstados = memoriaCantidad;
+    limiteRetrocesos = memoriaEstados;
+    retrocesosUsados = 0;
+
+    diccionario = new string[10]{
+        "PROGRAMACION", "ESTRUCTURA", "ALGORITMO", "BIBLIOTECA", "CIRCULO",
+        "COMPUTADORA", "TECLADO", "PANTALLA", "SOFTWARE", "HARDWARE"
+    };
+
+    int indice = rand() % 10;
+    palabraReal = diccionario[indice];
+
+    progreso = "";
+
+    for (int i = 0; i < palabraReal.length(); i++) {
+        progreso += "_";
+    }
+
+    memoria = new Pila<EstadoJuego>(memoriaEstados);
+}
+
+Ahorcado::~Ahorcado() {
+    delete[] diccionario;
+    delete memoria;
+}
+
+void Ahorcado::MostrarEstado() {
+    cout << "\nPalabra: " << progreso << " | Vidas: " << vidas << endl;
+    cout << "Retrocesos usados: " << retrocesosUsados << " / " << limiteRetrocesos << endl;
+}
+
+bool Ahorcado::VerificarVictoria() {
+    return progreso == palabraReal;
+}
+
+bool Ahorcado::VerificarDerrota() {
+    return vidas <= 0;
+}
+
+bool Ahorcado::VerificarFinJuego() {
+    return VerificarVictoria() || VerificarDerrota();
+}
+
+void Ahorcado::RecibirLetra(char input) {
+    EstadoJuego actual;
+
+    actual.palabraProgreso = progreso;
+    actual.vidas = vidas;
+    actual.letraIngresada = input;
+
+    memoria->push(actual);
+
+    bool acierto = false;
+
+    for (int i = 0; i < palabraReal.length(); i++) {
+        if (palabraReal[i] == input) {
+            progreso[i] = input;
+            acierto = true;
+        }
+    }
+
+    if (acierto == false) {
+        vidas--;
+        cout << "Fallo! -1 vida" << endl;
+    }
+}
+
+void Ahorcado::CtrlZ() {
+    if (retrocesosUsados >= limiteRetrocesos) {
+        cout << "Ya usaste todos los retrocesos permitidos." << endl;
+        return;
+    }
+
+    EstadoJuego anterior;
+
+    if (memoria->pop(anterior)) {
+        progreso = anterior.palabraProgreso;
+        vidas = anterior.vidas;
+
+        retrocesosUsados++;
+
+        cout << "Retrocediste el movimiento de la letra: " << anterior.letraIngresada << endl;
+    }
+    else {
+        cout << "No hay mas estados en memoria." << endl;
+    }
+}
+
 int main() {
     srand(time(0));
 
-    // Configuración
-    const int MAX_MEMORIA = 10;
-    const int MAX_VIDAS = 15;
+    int memoriaEstados = 5;
 
-    // Palabras (Podrías usar tu clase cola aquí para extraerlas)
-    string diccionario[] = { "PROGRAMACION", "ESTRUCTURA", "ALGORITMO", "BIBLIOTECA", "CIRCULO" };
-    string palabraReal = diccionario[rand() % 5];
-    string progreso(palabraReal.length(), '_');
+    Ahorcado juego1(memoriaEstados);
 
-    int vidas = MAX_VIDAS;
-    Pila<EstadoJuego> memoria(MAX_MEMORIA);
+    char input = '\0';
 
-    cout << "--- BIENVENIDO AL AHORCADO CON TRAMPA ---" << endl;
-    cout << "Usa '0' para retroceder (max " << MAX_MEMORIA << " estados)" << endl;
+    cout << "\n===============================" << endl;
+    cout << "          AHORCADO" << endl;
+    cout << "===============================" << endl;
+    cout << "Usa '0' para retroceder." << endl;
+    cout << "Memoria disponible: " << memoriaEstados << " estados" << endl;
 
-    while (vidas > 0 && progreso != palabraReal) {
-        cout << "\nPalabra: " << progreso << " | Vidas: " << vidas << endl;
-        cout << "Ingrese letra ( '0' para deshacer): ";
-        char input;
+    while (juego1.VerificarFinJuego() == false) {
+        juego1.MostrarEstado();
+
+        cout << "Ingrese letra ('0' para deshacer): ";
         cin >> input;
+
         input = toupper(input);
 
         if (input == '0') {
-            EstadoJuego anterior;
-            if (memoria.pop(anterior)) {
-                progreso = anterior.palabraProgreso;
-                vidas = anterior.vidas;
-                cout << "¡TRAMPA ACTIVA! Retrocediste a cuando ingresaste: " << anterior.letraIngresada << endl;
-            }
-            else {
-                cout << "No hay mas estados en memoria." << endl;
-            }
-            continue;
+            juego1.CtrlZ();
         }
-
-        // GUARDAR ESTADO ANTES DE MODIFICAR para volver hacia atras
-        EstadoJuego actual = { progreso, vidas, input };
-        memoria.push(actual);
-
-        // Procesar letra
-        bool acierto = false;
-        for (int i = 0; i < palabraReal.length(); i++) {
-            if (palabraReal[i] == input) {
-                progreso[i] = input;
-                acierto = true;
-            }
+        else if (input < 'A' || input > 'Z') {
+            cout << "Solo letras de A-Z." << endl;
         }
-
-        if (!acierto) {
-            vidas--;
-            cout << "fallo! O " << endl;
+        else {
+            juego1.RecibirLetra(input);
         }
     }
 
-    if (progreso == palabraReal) cout << "\nganaste: " << palabraReal << endl;
-    else cout << "\nperdiste" << endl;
+    cout << "\n===============================" << endl;
+
+    if (juego1.VerificarVictoria()) {
+        cout << "GANASTE! La palabra era: " << juego1.palabraReal << endl;
+    }
+    else {
+        cout << "PERDISTE! La palabra era: " << juego1.palabraReal << endl;
+    }
+
+    cout << "===============================" << endl;
 
     return 0;
 }
