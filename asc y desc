@@ -1,0 +1,138 @@
+#include <iostream>
+using namespace std;
+
+template <typename T>
+struct Nodo {
+    T dato;
+    Nodo<T>* sig;
+
+    Nodo(T x) : dato(x), sig(nullptr) {}
+};
+
+/*---------- ORDEN ASCENDENTE ----------*/
+template <typename T>
+struct OrdenAsc {
+    bool operator()(T a, T b) {
+        return a > b;
+    }
+};
+
+/*---------- ORDEN DESCENDENTE ----------*/
+template <typename T>
+struct OrdenDesc {
+    bool operator()(T a, T b) {
+        return a < b;
+    }
+};
+
+/*---------- LISTA ORDENADA ----------*/
+template <typename T, typename Comp>
+class ListaOrdenada {
+private:
+    Nodo<T>* inicio;
+
+public:
+    ListaOrdenada() : inicio(nullptr) {}
+    ~ListaOrdenada();
+
+    bool buscar(T x, Nodo<T>**& pos);
+    bool insertar(T x);
+    bool eliminar(T x);
+    void mostrar();
+};
+
+/*---------- DESTRUCTOR ----------*/
+template <typename T, typename Comp>
+ListaOrdenada<T, Comp>::~ListaOrdenada() {
+    while (inicio) {
+        Nodo<T>* aux = inicio;
+        inicio = inicio->sig;
+        delete aux;
+    }
+}
+
+/*---------- BUSCAR ----------*/
+template <typename T, typename Comp>
+bool ListaOrdenada<T, Comp>::buscar(T x, Nodo<T>**& pos) {
+    Comp criterio;
+    pos = &inicio;
+
+    while (*pos && criterio(x, (*pos)->dato)) {
+        pos = &((*pos)->sig);
+    }
+
+    return (*pos && (*pos)->dato == x);
+}
+
+/*---------- INSERTAR ----------*/
+template <typename T, typename Comp>
+bool ListaOrdenada<T, Comp>::insertar(T x) {
+    Nodo<T>** pos;
+
+    if (buscar(x, pos)) return false;
+
+    Nodo<T>* nuevo = new Nodo<T>(x);
+    nuevo->sig = *pos;
+    *pos = nuevo;
+
+    return true;
+}
+
+/*---------- ELIMINAR ----------*/
+template <typename T, typename Comp>
+bool ListaOrdenada<T, Comp>::eliminar(T x) {
+    Nodo<T>** pos;
+
+    if (!buscar(x, pos)) return false;
+
+    Nodo<T>* borrar = *pos;
+    *pos = borrar->sig;
+    delete borrar;
+
+    return true;
+}
+
+/*---------- MOSTRAR ----------*/
+template <typename T, typename Comp>
+void ListaOrdenada<T, Comp>::mostrar() {
+    if (!inicio) {
+        cout << "Lista vacia\n";
+        return;
+    }
+
+    Nodo<T>* aux = inicio;
+    while (aux) {
+        cout << aux->dato << " ";
+        aux = aux->sig;
+    }
+    cout << endl;
+}
+
+/*---------- MAIN ----------*/
+int main() {
+    ListaOrdenada<int, OrdenAsc<int>> asc;
+
+    cout << "ASCENDENTE:\n";
+    asc.insertar(5);
+    asc.insertar(10);
+    asc.insertar(8);
+    asc.insertar(2);
+    asc.insertar(33);
+    asc.insertar(24);
+    asc.insertar(42);
+    asc.insertar(15);
+    asc.mostrar();
+
+    ListaOrdenada<int, OrdenDesc<int>> desc;
+
+    cout << "DESCENDENTE:\n";
+    desc.insertar(5);
+    desc.insertar(10);
+    desc.insertar(8);
+    desc.insertar(2);
+    desc.insertar(33);
+    desc.insertar(24);
+    desc.insertar(42);
+    desc.insertar(15);
+    desc.mostrar();
+}
