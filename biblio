@@ -1,0 +1,441 @@
+#include <iostream>
+#include <string>
+#include <iomanip>
+#include <cctype>
+#include <limits>
+using namespace std;
+
+template <typename T>
+struct Nodo {
+    T dato;
+    Nodo<T>* siguiente;
+
+    Nodo(T valor) {
+        dato = valor;
+        siguiente = nullptr;
+    }
+};
+
+struct Libro {
+    string titulo;
+    string autor;
+    double precio;
+    int calificacion;
+
+    Libro() {
+        titulo = "";
+        autor = "";
+        precio = 0.0;
+        calificacion = 0;
+    }
+
+    Libro(string t, string a, double p, int c) {
+        titulo = t;
+        autor = a;
+        precio = p;
+        calificacion = c;
+    }
+};
+
+string minusculas(string texto) {
+    for (int i = 0; i < (int)texto.length(); i++) {
+        texto[i] = tolower((unsigned char)texto[i]);
+    }
+    return texto;
+}
+
+string formatoTitulo(string texto) {
+    bool inicioPalabra = true;
+
+    for (int i = 0; i < (int)texto.length(); i++) {
+        if (texto[i] == ' ') {
+            inicioPalabra = true;
+        }
+        else if (inicioPalabra) {
+            texto[i] = toupper((unsigned char)texto[i]);
+            inicioPalabra = false;
+        }
+        else {
+            texto[i] = tolower((unsigned char)texto[i]);
+        }
+    }
+
+    return texto;
+}
+
+template <typename T>
+struct CompararAsc {
+    string campo;
+
+    CompararAsc(string c) {
+        campo = c;
+    }
+
+    bool operator()(T a, T b) {
+        if (campo == "titulo")
+            return minusculas(a.titulo) < minusculas(b.titulo);
+
+        if (campo == "autor")
+            return minusculas(a.autor) < minusculas(b.autor);
+
+        if (campo == "precio")
+            return a.precio < b.precio;
+
+        if (campo == "calificacion")
+            return a.calificacion < b.calificacion;
+
+        return false;
+    }
+};
+
+template <typename T>
+struct CompararDesc {
+    string campo;
+
+    CompararDesc(string c) {
+        campo = c;
+    }
+
+    bool operator()(T a, T b) {
+        if (campo == "titulo")
+            return minusculas(a.titulo) > minusculas(b.titulo);
+
+        if (campo == "autor")
+            return minusculas(a.autor) > minusculas(b.autor);
+
+        if (campo == "precio")
+            return a.precio > b.precio;
+
+        if (campo == "calificacion")
+            return a.calificacion > b.calificacion;
+
+        return false;
+    }
+};
+
+template <typename T>
+struct MismoLibro {
+    bool operator()(T a, T b) {
+        return minusculas(a.titulo) == minusculas(b.titulo) &&
+            minusculas(a.autor) == minusculas(b.autor);
+    }
+};
+
+template <typename T, typename Orden>
+class ListaLibros {
+private:
+    Nodo<T>* primero;
+    string criterio;
+    int total;
+
+public:
+    ListaLibros(string c) {
+        primero = nullptr;
+        criterio = c;
+        total = 0;
+    }
+
+    ~ListaLibros();
+
+    bool ubicar(T libro, Nodo<T>**& posicion);
+    bool buscarExacto(T libro, Nodo<T>**& posicion);
+    bool agregar(T libro);
+    bool quitar(T libro);
+    void mostrar();
+    bool estaVacia();
+    int cantidad();
+};
+
+template <typename T, typename Orden>
+ListaLibros<T, Orden>::~ListaLibros() {
+    while (primero != nullptr) {
+        Nodo<T>* aux = primero;
+        primero = primero->siguiente;
+        delete aux;
+    }
+}
+
+template <typename T, typename Orden>
+bool ListaLibros<T, Orden>::ubicar(T libro, Nodo<T>**& posicion) {
+    Orden comparar(criterio);
+    MismoLibro<T> iguales;
+
+    posicion = &primero;
+
+    while (*posicion != nullptr && comparar((*posicion)->dato, libro)) {
+        posicion = &((*posicion)->siguiente);
+    }
+
+    return (*posicion != nullptr && iguales(libro, (*posicion)->dato));
+}
+
+template <typename T, typename Orden>
+bool ListaLibros<T, Orden>::buscarExacto(T libro, Nodo<T>**& posicion) {
+    MismoLibro<T> iguales;
+
+    posicion = &primero;
+
+    while (*posicion != nullptr) {
+        if (iguales(libro, (*posicion)->dato)) {
+            return true;
+        }
+
+        posicion = &((*posicion)->siguiente);
+    }
+
+    return false;
+}
+
+template <typename T, typename Orden>
+bool ListaLibros<T, Orden>::agregar(T libro) {
+    Nodo<T>** posicion;
+
+    if (buscarExacto(libro, posicion)) {
+        return false;
+    }
+
+    ubicar(libro, posicion);
+
+    Nodo<T>* nuevo = new Nodo<T>(libro);
+    nuevo->siguiente = *posicion;
+    *posicion = nuevo;
+
+    total++;
+    return true;
+}
+
+template <typename T, typename Orden>
+bool ListaLibros<T, Orden>::quitar(T libro) {
+    Nodo<T>** posicion;
+
+    if (!buscarExacto(libro, posicion)) {
+        return false;
+    }
+
+    Nodo<T>* eliminado = *posicion;
+    *posicion = eliminado->siguiente;
+    delete eliminado;
+
+    total--;
+    return true;
+}
+
+template <typename T, typename Orden>
+void ListaLibros<T, Orden>::mostrar() {
+    if (primero == nullptr) {
+        cout << "No hay libros registrados." << endl;
+        return;
+    }
+
+    Nodo<T>* actual = primero;
+
+    while (actual != nullptr) {
+        cout << "Titulo:       " << formatoTitulo(actual->dato.titulo) << endl;
+        cout << "Autor:        " << formatoTitulo(actual->dato.autor) << endl;
+        cout << "Precio:       S/. " << fixed << setprecision(2) << actual->dato.precio << endl;
+        cout << "Calificacion: " << actual->dato.calificacion << endl;
+
+        actual = actual->siguiente;
+
+        if (actual != nullptr) {
+            cout << "--------------------------------------------" << endl;
+        }
+    }
+
+    cout << endl;
+}
+
+template <typename T, typename Orden>
+bool ListaLibros<T, Orden>::estaVacia() {
+    return primero == nullptr;
+}
+
+template <typename T, typename Orden>
+int ListaLibros<T, Orden>::cantidad() {
+    return total;
+}
+
+template <typename T, typename Orden>
+void menuBiblioteca(ListaLibros<T, Orden>& biblioteca, string tipoOrden, string criterio) {
+    int opcion = 0;
+
+    do {
+        cout << "  1. Registrar libro" << endl;
+        cout << "  2. Borrar libro" << endl;
+        cout << "  3. Ver biblioteca" << endl;
+        cout << "  4. Salir" << endl;
+        cout << endl;
+        cout << "  Ingrese opcion: ";
+
+        while (!(cin >> opcion)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "  Entrada incorrecta. Ingrese opcion: ";
+        }
+
+        cout << endl;
+
+        if (opcion == 1) {
+            Libro libro;
+
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+            cout << "  Titulo: ";
+            getline(cin, libro.titulo);
+
+            while (libro.titulo.empty()) {
+                cout << "  El titulo no puede estar vacio. Titulo: ";
+                getline(cin, libro.titulo);
+            }
+
+            cout << "  Autor: ";
+            getline(cin, libro.autor);
+
+            while (libro.autor.empty()) {
+                cout << "  El autor no puede estar vacio. Autor: ";
+                getline(cin, libro.autor);
+            }
+
+            cout << "  Precio: S/. ";
+            cin >> libro.precio;
+
+            while (cin.fail() || libro.precio < 0) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "  Precio invalido. Precio: S/. ";
+                cin >> libro.precio;
+            }
+
+            cout << "  Calificacion (1-5): ";
+            cin >> libro.calificacion;
+
+            while (cin.fail() || libro.calificacion < 1 || libro.calificacion > 5) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                cout << "  Calificacion invalida. Calificacion (1-5): ";
+                cin >> libro.calificacion;
+            }
+
+            libro.titulo = minusculas(libro.titulo);
+            libro.autor = minusculas(libro.autor);
+
+            cout << endl;
+
+            if (biblioteca.agregar(libro)) {
+                cout << "***********************************************" << endl;
+                cout << "  Libro registrado ." << endl;
+                cout << "***********************************************" << endl;
+            }
+            else {
+                cout << "***********************************************" << endl;
+                cout << "  Ese libro ya se encuentra registrado." << endl;
+                cout << "***********************************************" << endl;
+            }
+        }
+        else if (opcion == 2) {
+            if (biblioteca.estaVacia()) {
+                cout << "***********************************************" << endl;
+                cout << "  La biblioteca esta vacia." << endl;
+                cout << "***********************************************" << endl;
+            }
+            else {
+                Libro buscado;
+
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                cout << "  Titulo del libro: ";
+                getline(cin, buscado.titulo);
+
+                cout << "  Autor del libro: ";
+                getline(cin, buscado.autor);
+
+                cout << endl;
+
+                if (biblioteca.quitar(buscado)) {
+                    cout << "***********************************************" << endl;
+                    cout << "  Libro eliminado ." << endl;
+                    cout << "***********************************************" << endl;
+                }
+                else {
+                    cout << "***********************************************" << endl;
+                    cout << "  No se encontro el libro." << endl;
+                    cout << "***********************************************" << endl;
+                }
+            }
+        }
+        else if (opcion == 3) {
+            cout << "======================================" << endl;
+            cout << "  Orden: " << tipoOrden << "  |  Criterio: " << criterio << endl;
+            cout << "  Total de libros: " << biblioteca.cantidad() << endl;
+            cout << "======================================" << endl;
+
+            biblioteca.mostrar();
+        }
+        else if (opcion != 4) {
+            cout << "  Opcion no valida." << endl;
+        }
+
+        cout << endl;
+
+    } while (opcion != 4);
+}
+
+int main() {
+    string orden;
+    string criterio;
+
+  
+    cout << "|          SISTEMA DE BIBLIOTECA            |" << endl;
+   
+    cout << endl;
+
+    cout << "Ordenamiento (ASC/DESC): ";
+    cin >> orden;
+
+    while (orden != "ASC" && orden != "DESC") {
+        cout << "Dato incorrecto. Escriba ASC o DESC: ";
+        cin >> orden;
+    }
+
+    cout << "Criterio (titulo/autor/precio/calificacion): ";
+    cin >> criterio;
+
+    while (criterio != "titulo" &&
+        criterio != "autor" &&
+        criterio != "precio" &&
+        criterio != "calificacion") {
+        cout << "dato incorrecto. Escriba titulo, autor, precio o calificacion: ";
+        cin >> criterio;
+    }
+
+    cout << endl;
+
+    if (orden == "ASC") {
+        ListaLibros<Libro, CompararAsc<Libro>> biblioteca(criterio);
+
+        Libro l1("tidehunter", "juan lopez", 52.10, 5);
+        Libro l2("blood", "felipe lita", 38.50, 5);
+        Libro l3("el fin", "juana andra", 61.20, 4);
+
+        biblioteca.agregar(l1);
+        biblioteca.agregar(l2);
+        biblioteca.agregar(l3);
+
+        menuBiblioteca(biblioteca, orden, criterio);
+    }
+    else {
+        ListaLibros<Libro, CompararDesc<Libro>> biblioteca(criterio);
+
+        Libro l1("tidehunter", "juan lopez", 52.10, 5);
+        Libro l2("blood", "felipe lita", 38.50, 5);
+        Libro l3("el fin", "juana andra", 61.20, 4);
+
+        biblioteca.agregar(l1);
+        biblioteca.agregar(l2);
+        biblioteca.agregar(l3);
+
+        menuBiblioteca(biblioteca, orden, criterio);
+    }
+
+    return 0;
+}
